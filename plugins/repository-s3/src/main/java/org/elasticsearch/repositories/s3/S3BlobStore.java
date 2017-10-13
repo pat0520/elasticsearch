@@ -25,6 +25,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.StorageClass;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
@@ -49,16 +50,19 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
 
     private final boolean serverSideEncryption;
 
+    private final String awsKmsKey;
+
     private final CannedAccessControlList cannedACL;
 
     private final StorageClass storageClass;
 
-    S3BlobStore(Settings settings, AmazonS3 client, String bucket, boolean serverSideEncryption,
+    S3BlobStore(Settings settings, AmazonS3 client, String bucket, boolean serverSideEncryption, String awsKmsKey,
                 ByteSizeValue bufferSize, String cannedACL, String storageClass) {
         super(settings);
         this.client = client;
         this.bucket = bucket;
         this.serverSideEncryption = serverSideEncryption;
+        this.awsKmsKey = awsKmsKey;
         this.bufferSize = bufferSize;
         this.cannedACL = initCannedACL(cannedACL);
         this.storageClass = initStorageClass(storageClass);
@@ -91,6 +95,14 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
 
     public boolean serverSideEncryption() {
         return serverSideEncryption;
+    }
+
+    public boolean IsAwsKmsKeyEmpty() {
+        return awsKmsKey == null || awsKmsKey.isEmpty();
+    }
+
+    public SSEAwsKeyManagementParams getSSEAwsKeyManagementParams() {
+        return new SSEAwsKeyManagementParams (awsKmsKey);
     }
 
     public int bufferSizeInBytes() {

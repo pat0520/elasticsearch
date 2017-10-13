@@ -75,10 +75,17 @@ class S3Repository extends BlobStoreRepository {
     static final Setting<String> BUCKET_SETTING = Setting.simpleString("bucket");
 
     /**
-     * When set to true files are encrypted on server side using AES256 algorithm.
+     * When set to true files are encrypted on server side using AES256 or aws:kms algorithm.
      * Defaults to false.
      */
     static final Setting<Boolean> SERVER_SIDE_ENCRYPTION_SETTING = Setting.boolSetting("server_side_encryption", false);
+
+    /**
+     * When aws_kms_key is set, objects are encrypted on server side using the provided aws kms key or AE256 algorithm is used.
+     * Defaults to null.
+     */
+
+    static final Setting<String> AWS_KMS_KEY = Setting.simpleString("aws_kms_key");
 
     /**
      * Minimum threshold below which the chunk is uploaded using a single request. Beyond this threshold,
@@ -139,6 +146,7 @@ class S3Repository extends BlobStoreRepository {
         }
 
         boolean serverSideEncryption = SERVER_SIDE_ENCRYPTION_SETTING.get(metadata.settings());
+        String awsKmsKey = AWS_KMS_KEY.get(metadata.settings());
         ByteSizeValue bufferSize = BUFFER_SIZE_SETTING.get(metadata.settings());
         this.chunkSize = CHUNK_SIZE_SETTING.get(metadata.settings());
         this.compress = COMPRESS_SETTING.get(metadata.settings());
@@ -158,7 +166,7 @@ class S3Repository extends BlobStoreRepository {
             bucket, chunkSize, serverSideEncryption, bufferSize, cannedACL, storageClass);
 
         AmazonS3 client = s3Service.client(metadata.settings());
-        blobStore = new S3BlobStore(settings, client, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass);
+        blobStore = new S3BlobStore(settings, client, bucket, serverSideEncryption, awsKmsKey, bufferSize, cannedACL, storageClass);
 
         String basePath = BASE_PATH_SETTING.get(metadata.settings());
         if (Strings.hasLength(basePath)) {

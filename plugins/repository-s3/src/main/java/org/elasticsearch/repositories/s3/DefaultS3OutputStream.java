@@ -125,13 +125,23 @@ class DefaultS3OutputStream extends S3OutputStream {
             boolean serverSideEncryption) throws AmazonS3Exception {
         ObjectMetadata md = new ObjectMetadata();
         if (serverSideEncryption) {
-            md.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+            if(blobStore.IsAwsKmsKeyEmpty()) {
+                md.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+            } else {
+                md.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
+            }
+
         }
         md.setContentLength(length);
 
         PutObjectRequest putRequest = new PutObjectRequest(bucketName, blobName, is, md)
                 .withStorageClass(blobStore.getStorageClass())
                 .withCannedAcl(blobStore.getCannedACL());
+
+        if(serverSideEncryption && !blobStore.IsAwsKmsKeyEmpty()) {
+            putRequest.setSSEAwsKeyManagementParams(blobStore.getSSEAwsKeyManagementParams());
+        }
+
         blobStore.client().putObject(putRequest);
 
     }
@@ -153,7 +163,12 @@ class DefaultS3OutputStream extends S3OutputStream {
 
         if (serverSideEncryption) {
             ObjectMetadata md = new ObjectMetadata();
-            md.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+            if(blobStore.IsAwsKmsKeyEmpty()) {
+                md.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+            } else {
+                md.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
+                request.setSSEAwsKeyManagementParams(blobStore.getSSEAwsKeyManagementParams());
+            }
             request.setObjectMetadata(md);
         }
 
